@@ -29,13 +29,14 @@ int get_random_digits(int mod)
 	return rand()%mod;
 }
 
-enum operation {ERR, ADD, SUB, MUX, DIV};
-static char op_sym[5] = {'_','+','-','*','/'};
+enum operation {ADD, SUB, MUX, DIV, ERR};
+static char op_sym[5] = {'+','-','*','/', '_'};
 static struct question {
 	int var1;
 	int var2;
 	enum operation op;
-	int result;
+	int correct_answer;
+	int user_input;
 }ques;
 
 int double_digit_generator(void)
@@ -54,12 +55,21 @@ void generate_addition_question(struct question *q, int mod)
 		if (q->var1 + q->var2 < mod)
 			break;
 	}
-	q->result = q->var1 + q->var2;
+	q->correct_answer = q->var1 + q->var2;
 	dbg("\n%s(): %d %c %d = %d\n", __func__, q->var1, op_sym[ques.op],
-		q->var2, q->result);
+		q->var2, q->correct_answer);
 }
 
-void test(void)
+enum test_mode {EXERCISE, EXAM};
+enum judge_result {PASS, FAIL};
+
+struct test_result {
+	struct question ques;
+	int user_input;
+	int judge_result;
+};
+
+int test(int mode, struct test_result *tr)
 {
 	char ch, input_string[10];
 	int input, i, size;
@@ -68,6 +78,7 @@ void test(void)
 	int a1, a2, a3;
 	int m1, m2, m3;
 	int result = -1;
+	int ret = 0;
 
 	/* Change io buffer property to react for each cahr input */
 	tcgetattr(0, &old);
@@ -101,23 +112,49 @@ again:
 	dbg("\n%s(): input is: %d\n", __func__, input);
 
 	/* judge */
-	if (input == ques.result) {
-		printf("\nResult: Correct!\n");
+	if (input == ques.correct_answer) {
+		dbg("\nResult: Correct!\n");
 	} else {
-		printf("\nResult: Wrong! Do it again...\n\n");
-		goto again;
+		if (mode == EXERCISE) {
+			printf("\nResult: Wrong! Do it again...\n\n");
+			goto again;
+		} else if (mode == EXAM) { /* record result */
+			if (tr != NULL) {
+				tr->ques.var1 = ques.var1;
+				tr->ques.var2 = ques.var2;
+				tr->ques.op = ques.op;
+				tr->ques.correct_answer = ques.correct_answer;
+				tr->user_input = input;
+				tr->judge_result = FAIL;
+			}
+		}
+		ret = -1;
 	}
-
-	
-	/* print test result */
 
 
 	printf("\n");
+	return ret;
 }
 
 int main(void)
 {
+	struct test_result test_result_10[10], *ptr;
+	int count, ret;
+
+	ptr = test_result_10;
+	
 	printf("Test begin...\n\n");
-	test();
+	for (count = 0; count < 4; count++) {
+#if 1
+		test(EXERCISE, NULL);
+#else
+		ret = test(EXAM, ptr);
+		if (ret < 0) {
+			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1, op_sym[ptr->ques.op] ,ptr->ques.var2, ptr->user_input, ptr->ques.correct_answer);
+			ptr++;
+		}
+#endif
+	}
+
 	return 0;
 }
