@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <termios.h>
 #include <stdlib.h>
+#include <time.h>
 
 static struct termios old, new;
+
 
 //#define DEBUG
 
@@ -15,7 +17,18 @@ void dbg(char *format, ...)
 }
 #endif
 
-int main(void)
+int get_random_digits(int mod)
+{
+	srand((unsigned)time(NULL));
+	return rand()%mod;
+}
+
+int double_digit_generator(void)
+{
+	printf("%d\n",  get_random_digits(100));
+}
+
+void test(void)
 {
 	char ch, input_string[10];
 	int input, i, size;
@@ -71,5 +84,11 @@ again:
 
 
 	printf("\n");
+}
+
+int main(void)
+{
+	test();
+	//double_digit_generator();
 	return 0;
 }
