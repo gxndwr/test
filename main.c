@@ -75,7 +75,6 @@ void test(void)
 	new.c_lflag &= ~ICANON;
 	new.c_lflag &= ~ECHO;
 
-	printf("Test begin...\n\n");
 	/* generate question */
 	generate_addition_question(&ques, 1000);
 
@@ -118,6 +117,7 @@ again:
 
 int main(void)
 {
+	printf("Test begin...\n\n");
 	test();
 	return 0;
 }
