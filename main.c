@@ -4,7 +4,7 @@
 
 static struct termios old, new;
 
-#define DEBUG
+//#define DEBUG
 
 #if defined(DEBUG)
 	#define dbg printf
@@ -21,6 +21,9 @@ int main(void)
 	int input, i, size;
 	input = -1;
 	ch = 0;
+	int a1, a2, a3;
+	int m1, m2, m3;
+	int result = -1;
 
 	/* Change io buffer property to react for each cahr input */
 	tcgetattr(0, &old);
@@ -28,10 +31,14 @@ int main(void)
 	new.c_lflag &= ~ICANON;
 	new.c_lflag &= ~ECHO;
 
-	printf("Test begin...\n");
-
+	printf("Test begin...\n\n");
+	/* generate question */
+	a1 = 234;
+	a2 = 34;
+	result = a1 + a2;
+again:
 	/* print question */
-	printf("1+1=___");
+	printf("%d + %d =____", a1, a2);
 
 	/* collect input */
 	tcsetattr(0, TCSANOW, &new);
@@ -49,13 +56,14 @@ int main(void)
 	tcsetattr(0, TCSANOW, &old);
 
 	input = atoi(input_string);;
-	dbg("\niinput is: %d\n", input);
+	dbg("\ninput is: %d\n", input);
 
 	/* judge */
-	if (input == 2) {
+	if (input == result) {
 		printf("\nResult: Correct!\n");
 	} else {
-		printf("\nResult: Wrong!\n");
+		printf("\nResult: Wrong! Do it again...\n\n");
+		goto again;
 	}
 
 	
