@@ -99,6 +99,19 @@ again:
 	size = 0;
 	input_string[size] = '\0';
 	while ((ch = getchar()) != '\n') {
+		if (ch == 127) {
+			printf("_");
+			if (size) {
+				//printf("\nsize:%d\n", size);
+				for(i=0;i<size;i++) {
+					//printf("i:%d\n", i);
+					input_string[i] = input_string[i+1];
+				}
+				size--;
+			}
+			continue;
+		}
+		dbg("\n:%d\n", ch);
 		size++;
 		printf("\b%c\b",ch);
 		for(i=size;i>0;i--) {
