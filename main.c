@@ -153,19 +153,44 @@ int main(void)
 {
 	struct test_result test_result_10[10], *ptr;
 	int count, ret;
+	char input[100];
+	int user_choice;
 
 	ptr = test_result_10;
-	
+
+	while(1) {
+		printf("EXERCISE(x) or EXAM(m)?\n");
+		scanf("%s", input);
+		if (input[0] == 'x') {
+			user_choice = EXERCISE; 
+			getchar();
+			break;
+		}
+		if (input[0] == 'm') {
+			user_choice = EXAM; 
+			getchar();
+			break;
+		}
+		printf("invalid choice\n");
+	}
+
 	printf("Test begin...\n\n");
 	for (count = 0; count < 4; count++) {
-#if 1
+#if 0
 		test(EXERCISE, NULL);
-#else
+#elseif 0
 		ret = test(EXAM, ptr);
 		if (ret < 0) {
 			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1, op_sym[ptr->ques.op] ,ptr->ques.var2, ptr->user_input, ptr->ques.correct_answer);
 			ptr++;
 		}
+#else
+		ret = test(user_choice, ptr);
+		if ((ret < 0) && (user_choice == EXAM)) {
+			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1, op_sym[ptr->ques.op] ,ptr->ques.var2, ptr->user_input, ptr->ques.correct_answer);
+			ptr++;
+		}
+
 #endif
 	}
 
