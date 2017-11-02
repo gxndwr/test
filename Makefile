@@ -1,2 +1,2 @@
-get: main.c
-	gcc main.c -o $@ -lcurses
+test: main.c
+	gcc main.c -o $@

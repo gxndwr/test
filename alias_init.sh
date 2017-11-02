@@ -2,4 +2,4 @@
 
 alias m='make'
 alias f='fg'
-alias r='./get'
+alias r='./test'
