@@ -2,6 +2,8 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/timeb.h>
+#include <unistd.h>
 
 static struct termios old, new;
 
@@ -17,15 +19,44 @@ void dbg(char *format, ...)
 }
 #endif
 
+struct timeb timeSeed;
 int get_random_digits(int mod)
 {
-	srand((unsigned)time(NULL));
+	ftime(&timeSeed);
+	//srand((unsigned)time(NULL));
+	srand(timeSeed.time * 1000 + timeSeed.millitm);
+	usleep(10000);
 	return rand()%mod;
 }
+
+enum operation {ERR, ADD, SUB, MUX, DIV};
+static char op_sym[5] = {'_','+','-','*','/'};
+static struct question {
+	int var1;
+	int var2;
+	enum operation op;
+	int result;
+}ques;
 
 int double_digit_generator(void)
 {
 	printf("%d\n",  get_random_digits(100));
+}
+
+void generate_addition_question(struct question *q, int mod)
+{
+	while (1) {
+		q->var1 = get_random_digits(mod);
+		q->var2 = get_random_digits(mod);
+		q->op=ADD;
+
+		/* restrict result no more than max num */
+		if (q->var1 + q->var2 < mod)
+			break;
+	}
+	q->result = q->var1 + q->var2;
+	dbg("\n%s(): %d %c %d = %d\n", __func__, q->var1, op_sym[ques.op],
+		q->var2, q->result);
 }
 
 void test(void)
@@ -46,12 +77,11 @@ void test(void)
 
 	printf("Test begin...\n\n");
 	/* generate question */
-	a1 = 234;
-	a2 = 34;
-	result = a1 + a2;
+	generate_addition_question(&ques, 1000);
+
 again:
 	/* print question */
-	printf("%d + %d =____", a1, a2);
+	printf("%d %c %d =____", ques.var1, op_sym[ques.op] ,ques.var2);
 
 	/* collect input */
 	tcsetattr(0, TCSANOW, &new);
@@ -69,10 +99,10 @@ again:
 	tcsetattr(0, TCSANOW, &old);
 
 	input = atoi(input_string);;
-	dbg("\ninput is: %d\n", input);
+	dbg("\n%s(): input is: %d\n", __func__, input);
 
 	/* judge */
-	if (input == result) {
+	if (input == ques.result) {
 		printf("\nResult: Correct!\n");
 	} else {
 		printf("\nResult: Wrong! Do it again...\n\n");
@@ -89,6 +119,5 @@ again:
 int main(void)
 {
 	test();
-	//double_digit_generator();
 	return 0;
 }
