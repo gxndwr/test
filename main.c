@@ -42,6 +42,7 @@ static struct question {
 int double_digit_generator(void)
 {
 	printf("%d\n",  get_random_digits(100));
+    return 0;
 }
 
 void generate_addition_question(struct question *q, int mod)
