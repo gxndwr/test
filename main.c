@@ -23,7 +23,6 @@ struct timeb timeSeed;
 int get_random_digits(int mod)
 {
 	ftime(&timeSeed);
-	//srand((unsigned)time(NULL));
 	srand(timeSeed.time * 1000 + timeSeed.millitm);
 	usleep(10000);
 	return rand()%mod;
