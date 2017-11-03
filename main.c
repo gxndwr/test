@@ -177,22 +177,13 @@ int main(void)
 
 	printf("Test begin...\n\n");
 	for (count = 0; count < 4; count++) {
-#if 0
-		test(EXERCISE, NULL);
-#elseif 0
-		ret = test(EXAM, ptr);
-		if (ret < 0) {
-			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1, op_sym[ptr->ques.op] ,ptr->ques.var2, ptr->user_input, ptr->ques.correct_answer);
-			ptr++;
-		}
-#else
 		ret = test(user_choice, ptr);
 		if ((ret < 0) && (user_choice == EXAM)) {
-			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1, op_sym[ptr->ques.op] ,ptr->ques.var2, ptr->user_input, ptr->ques.correct_answer);
+			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1,
+                    op_sym[ptr->ques.op] ,ptr->ques.var2,
+                    ptr->user_input, ptr->ques.correct_answer);
 			ptr++;
 		}
-
-#endif
 	}
 
 	return 0;
