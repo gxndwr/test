@@ -174,7 +174,7 @@ int main(void)
 		printf("invalid choice\n");
 	}
 
-	printf("Test begin...\n\n");
+	printf("Let's begin...\n\n");
 	for (count = 0; count < 4; count++) {
 		ret = test(user_choice, ptr);
 		if ((ret < 0) && (user_choice == EXAM)) {
