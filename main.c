@@ -19,6 +19,24 @@ void dbg(char *format, ...)
 }
 #endif
 
+void initialize_buffer_property(void)
+{
+	tcgetattr(0, &old);
+	new = old;
+	new.c_lflag &= ~ICANON;
+	new.c_lflag &= ~ECHO;
+}
+
+void disable_io_buffer()
+{
+	tcsetattr(0, TCSANOW, &new);
+}
+
+void enable_io_buffer()
+{
+	tcsetattr(0, TCSANOW, &old);
+}
+
 struct timeb timeSeed;
 int get_random_digits(int mod)
 {
@@ -80,11 +98,10 @@ int test(int mode, struct test_result *tr)
 	int result = -1;
 	int ret = 0;
 
-	/* Change io buffer property to react for each cahr input */
-	tcgetattr(0, &old);
-	new = old;
-	new.c_lflag &= ~ICANON;
-	new.c_lflag &= ~ECHO;
+//	tcgetattr(0, &old);
+//	new = old;
+//	new.c_lflag &= ~ICANON;
+//	new.c_lflag &= ~ECHO;
 
 	/* generate question */
 	generate_addition_question(&ques, 1000);
@@ -93,9 +110,12 @@ again:
 	/* print question */
 	printf("%d %c %d =____", ques.var1, op_sym[ques.op] ,ques.var2);
 
-	/* collect input */
-	tcsetattr(0, TCSANOW, &new);
 
+	/* Change io buffer property to react for each cahr input */
+    disable_io_buffer();
+	//tcsetattr(0, TCSANOW, &new);
+
+	/* collect input */
 	size = 0;
 	input_string[size] = '\0';
 	while ((ch = getchar()) != '\n') {
@@ -119,7 +139,8 @@ again:
 		}
 		input_string[0] = ch;
 	}
-	tcsetattr(0, TCSANOW, &old);
+	//tcsetattr(0, TCSANOW, &old);
+    enable_io_buffer();
 
 	input = atoi(input_string);;
 	dbg("\n%s(): input is: %d\n", __func__, input);
@@ -155,6 +176,9 @@ int main(void)
 	int count, ret;
 	char input[100];
 	int user_choice;
+
+    /* prepare buffer settings */
+    initialize_buffer_property();
 
 	ptr = test_result_10;
 
