@@ -164,7 +164,7 @@ int main(void)
 {
 	struct test_result test_result_10[10], *ptr;
 	int count, ret;
-	char input[100];
+	char ch;
 	int user_choice;
 
     /* prepare buffer settings */
@@ -172,21 +172,23 @@ int main(void)
 
 	ptr = test_result_10;
 
+    disable_io_buffer();
+
 	while(1) {
 		printf("EXERCISE(x) or EXAM(m)?\n");
-		scanf("%s", input);
-		if (input[0] == 'x') {
+		ch = getchar();
+		if (ch == 'x') {
 			user_choice = EXERCISE; 
-			getchar();
 			break;
 		}
-		if (input[0] == 'm') {
+		if (ch == 'm') {
 			user_choice = EXAM; 
-			getchar();
 			break;
 		}
 		printf("invalid choice\n");
 	}
+
+    enable_io_buffer();
 
 	printf("Let's begin...\n\n");
 	for (count = 0; count < 4; count++) {
