@@ -7,7 +7,6 @@
 
 static struct termios old, new;
 
-
 //#define DEBUG
 
 #if defined(DEBUG)
@@ -98,11 +97,6 @@ int test(int mode, struct test_result *tr)
 	int result = -1;
 	int ret = 0;
 
-//	tcgetattr(0, &old);
-//	new = old;
-//	new.c_lflag &= ~ICANON;
-//	new.c_lflag &= ~ECHO;
-
 	/* generate question */
 	generate_addition_question(&ques, 1000);
 
@@ -113,7 +107,6 @@ again:
 
 	/* Change io buffer property to react for each cahr input */
     disable_io_buffer();
-	//tcsetattr(0, TCSANOW, &new);
 
 	/* collect input */
 	size = 0;
@@ -122,9 +115,7 @@ again:
 		if (ch == 127) {
 			printf("_");
 			if (size) {
-				//printf("\nsize:%d\n", size);
 				for(i=0;i<size;i++) {
-					//printf("i:%d\n", i);
 					input_string[i] = input_string[i+1];
 				}
 				size--;
@@ -139,7 +130,7 @@ again:
 		}
 		input_string[0] = ch;
 	}
-	//tcsetattr(0, TCSANOW, &old);
+
     enable_io_buffer();
 
 	input = atoi(input_string);;
@@ -164,7 +155,6 @@ again:
 		}
 		ret = -1;
 	}
-
 
 	printf("\n");
 	return ret;
