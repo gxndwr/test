@@ -5,8 +5,8 @@
 #include <sys/timeb.h>
 #include <unistd.h>
 
+#define QUESTION_NUM    8
 static struct termios old, new;
-
 
 //#define DEBUG
 
@@ -19,11 +19,28 @@ void dbg(char *format, ...)
 }
 #endif
 
+void initialize_buffer_property(void)
+{
+	tcgetattr(0, &old);
+	new = old;
+	new.c_lflag &= ~ICANON;
+	new.c_lflag &= ~ECHO;
+}
+
+void disable_io_buffer()
+{
+	tcsetattr(0, TCSANOW, &new);
+}
+
+void enable_io_buffer()
+{
+	tcsetattr(0, TCSANOW, &old);
+}
+
 struct timeb timeSeed;
 int get_random_digits(int mod)
 {
 	ftime(&timeSeed);
-	//srand((unsigned)time(NULL));
 	srand(timeSeed.time * 1000 + timeSeed.millitm);
 	usleep(10000);
 	return rand()%mod;
@@ -37,11 +54,39 @@ static struct question {
 	enum operation op;
 	int correct_answer;
 	int user_input;
+    void (*print_question)(struct question *THIS);
 }ques;
 
 int double_digit_generator(void)
 {
 	printf("%d\n",  get_random_digits(100));
+    return 0;
+}
+
+void print_2_elements_question(struct question *q)
+{
+	dbg("%s() is called\n", __func__);
+	printf("%d %c %d =____", q->var1, op_sym[q->op],
+		   q->var2);
+}
+
+void generate_subtraction_question(struct question *q, int mod)
+{
+	while (1) {
+		q->var1 = get_random_digits(mod);
+		q->var2 = get_random_digits(mod);
+		q->op=SUB;
+
+		/* restrict result no more than max num */
+		if (q->var1 > q->var2)
+			break;
+	}
+	q->correct_answer = q->var1 - q->var2;
+	dbg("\n%s(): %d %c %d = %d\n",
+        __func__, q->var1, op_sym[ques.op],
+		q->var2, q->correct_answer);
+
+	q->print_question = print_2_elements_question;
 }
 
 void generate_addition_question(struct question *q, int mod)
@@ -56,20 +101,25 @@ void generate_addition_question(struct question *q, int mod)
 			break;
 	}
 	q->correct_answer = q->var1 + q->var2;
-	dbg("\n%s(): %d %c %d = %d\n", __func__, q->var1, op_sym[ques.op],
+	dbg("\n%s(): %d %c %d = %d\n",
+        __func__, q->var1, op_sym[ques.op],
 		q->var2, q->correct_answer);
+
+	q->print_question = print_2_elements_question;
 }
 
-enum test_mode {EXERCISE, EXAM};
-enum judge_result {PASS, FAIL};
-
+/* record for jude result */
 struct test_result {
 	struct question ques;
 	int user_input;
 	int judge_result;
 };
 
-int test(int mode, struct test_result *tr)
+enum test_mode {EXERCISE, EXAM};
+enum judge_result {PASS, FAIL};
+
+/* main test function */
+int test(int mode, struct test_result *tr, int math)
 {
 	char ch, input_string[10];
 	int input, i, size;
@@ -80,31 +130,30 @@ int test(int mode, struct test_result *tr)
 	int result = -1;
 	int ret = 0;
 
-	/* Change io buffer property to react for each cahr input */
-	tcgetattr(0, &old);
-	new = old;
-	new.c_lflag &= ~ICANON;
-	new.c_lflag &= ~ECHO;
-
-	/* generate question */
-	generate_addition_question(&ques, 1000);
-
+    /* generate question */
+    if (math == ADD)
+        generate_addition_question(&ques, 1000);
+    else if (math == SUB)
+        generate_subtraction_question(&ques, 1000);
+    else
+        goto error;
 again:
 	/* print question */
-	printf("%d %c %d =____", ques.var1, op_sym[ques.op] ,ques.var2);
+	ques.print_question(&ques);
+	//printf("%d %c %d =____", ques.var1, op_sym[ques.op],
+	//	   ques.var2);
+
+	/* Change io buffer property to react for each cahr input */
+    disable_io_buffer();
 
 	/* collect input */
-	tcsetattr(0, TCSANOW, &new);
-
 	size = 0;
 	input_string[size] = '\0';
 	while ((ch = getchar()) != '\n') {
 		if (ch == 127) {
 			printf("_");
 			if (size) {
-				//printf("\nsize:%d\n", size);
 				for(i=0;i<size;i++) {
-					//printf("i:%d\n", i);
 					input_string[i] = input_string[i+1];
 				}
 				size--;
@@ -119,79 +168,101 @@ again:
 		}
 		input_string[0] = ch;
 	}
-	tcsetattr(0, TCSANOW, &old);
+
+    enable_io_buffer();
 
 	input = atoi(input_string);;
 	dbg("\n%s(): input is: %d\n", __func__, input);
 
 	/* judge */
 	if (input == ques.correct_answer) {
-		dbg("\nResult: Correct!\n");
-	} else {
-		if (mode == EXERCISE) {
-			printf("\nResult: Wrong! Do it again...\n\n");
-			goto again;
-		} else if (mode == EXAM) { /* record result */
-			if (tr != NULL) {
-				tr->ques.var1 = ques.var1;
-				tr->ques.var2 = ques.var2;
-				tr->ques.op = ques.op;
-				tr->ques.correct_answer = ques.correct_answer;
-				tr->user_input = input;
-				tr->judge_result = FAIL;
-			}
-		}
-		ret = -1;
-	}
+        dbg("\nResult: Correct!\n");
+    } else {
+        if (mode == EXERCISE) {
+            printf("\nResult: Wrong! Do it again...\n\n");
+            goto again;
+        } else if (mode == EXAM) { /* record result */
+            if (tr != NULL) {
+                tr->ques.var1 = ques.var1;
+                tr->ques.var2 = ques.var2;
+                tr->ques.op = ques.op;
+                tr->ques.correct_answer = ques.correct_answer;
+                tr->user_input = input;
+                tr->judge_result = FAIL;
+            }
+        }
+        ret = -1;
+    }
 
+    printf("\n");
+    return ret;
 
-	printf("\n");
-	return ret;
+error:
+    printf("%s(): mode invalid: %d!\n", __func__, math);
+    return -2;
 }
 
 int main(void)
 {
 	struct test_result test_result_10[10], *ptr;
 	int count, ret;
-	char input[100];
+	char ch;
 	int user_choice;
+    int math_mode;
+
+    /* prepare buffer settings */
+    initialize_buffer_property();
 
 	ptr = test_result_10;
 
+    disable_io_buffer();
+
+    /* choose math mode */
 	while(1) {
-		printf("EXERCISE(x) or EXAM(m)?\n");
-		scanf("%s", input);
-		if (input[0] == 'x') {
-			user_choice = EXERCISE; 
-			getchar();
+		printf("Do ADD(a) or SUB(s)?\n");
+		ch = getchar();
+		if (ch == 'a') {
+			math_mode = ADD;
 			break;
 		}
-		if (input[0] == 'm') {
-			user_choice = EXAM; 
-			getchar();
+		if (ch == 's') {
+			math_mode = SUB;
 			break;
 		}
 		printf("invalid choice\n");
 	}
 
-	printf("Test begin...\n\n");
-	for (count = 0; count < 4; count++) {
-#if 0
-		test(EXERCISE, NULL);
-#elseif 0
-		ret = test(EXAM, ptr);
-		if (ret < 0) {
-			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1, op_sym[ptr->ques.op] ,ptr->ques.var2, ptr->user_input, ptr->ques.correct_answer);
-			ptr++;
+    /* choose test mode */
+	while(1) {
+		printf("EXERCISE(x) or EXAM(m)?\n");
+		ch = getchar();
+		if (ch == 'x') {
+			user_choice = EXERCISE; 
+			break;
 		}
-#else
-		ret = test(user_choice, ptr);
-		if ((ret < 0) && (user_choice == EXAM)) {
-			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1, op_sym[ptr->ques.op] ,ptr->ques.var2, ptr->user_input, ptr->ques.correct_answer);
-			ptr++;
+		if (ch == 'm') {
+			user_choice = EXAM; 
+			break;
 		}
+		printf("invalid choice\n");
+	}
 
-#endif
+    enable_io_buffer();
+
+	printf("Let's begin...\n\n");
+	for (count = 0; count < QUESTION_NUM; count++) {
+		ret = test(user_choice, ptr, math_mode);
+		if ((ret == -1) && (user_choice == EXAM)) {
+			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1,
+                    op_sym[ptr->ques.op] ,ptr->ques.var2,
+                    ptr->user_input, ptr->ques.correct_answer);
+			ptr++;
+		}
+        dbg("%s(): ret: %d\n", __func__,  ret);
+        if (ret == -2) {
+            printf("Fatal error: %d, return.\n", ret);
+            return -1;
+        }
 	}
 
 	return 0;
