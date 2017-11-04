@@ -73,7 +73,8 @@ void generate_addition_question(struct question *q, int mod)
 			break;
 	}
 	q->correct_answer = q->var1 + q->var2;
-	dbg("\n%s(): %d %c %d = %d\n", __func__, q->var1, op_sym[ques.op],
+	dbg("\n%s(): %d %c %d = %d\n",
+        __func__, q->var1, op_sym[ques.op],
 		q->var2, q->correct_answer);
 }
 
@@ -102,7 +103,8 @@ int test(int mode, struct test_result *tr)
 
 again:
 	/* print question */
-	printf("%d %c %d =____", ques.var1, op_sym[ques.op] ,ques.var2);
+	printf("%d %c %d =____", ques.var1, op_sym[ques.op]
+            ,ques.var2);
 
 
 	/* Change io buffer property to react for each cahr input */
