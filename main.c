@@ -54,6 +54,7 @@ static struct question {
 	enum operation op;
 	int correct_answer;
 	int user_input;
+    void (*print_question)(struct question *THIS);
 }ques;
 
 int double_digit_generator(void)
@@ -62,6 +63,10 @@ int double_digit_generator(void)
     return 0;
 }
 
+void foo(struct question *ques)
+{
+	printf("%s\n", __func__);
+}
 void generate_subtraction_question(struct question *q, int mod)
 {
 	while (1) {
@@ -77,8 +82,13 @@ void generate_subtraction_question(struct question *q, int mod)
 	dbg("\n%s(): %d %c %d = %d\n",
         __func__, q->var1, op_sym[ques.op],
 		q->var2, q->correct_answer);
+	q->print_question = foo;
 }
 
+void print_addition_question(struct question* q){
+    printf("%d!!!!!!!\n", q->var1);
+
+}
 void generate_addition_question(struct question *q, int mod)
 {
 	while (1) {
@@ -123,7 +133,7 @@ int test(int mode, struct test_result *tr, int math)
         generate_subtraction_question(&ques, 1000);
     else
         goto error;
-
+ques.print_question(&ques);
 again:
 	/* print question */
 	printf("%d %c %d =____", ques.var1, op_sym[ques.op]
