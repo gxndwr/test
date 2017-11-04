@@ -37,12 +37,18 @@ void enable_io_buffer()
 	tcsetattr(0, TCSANOW, &old);
 }
 
-struct timeb timeSeed;
+struct timeb timeSeed, last_question_timeb;
+static int last_time_stamp;
 int get_random_digits(int mod)
 {
+    int num;
 	ftime(&timeSeed);
 	srand(timeSeed.time * 1000 + timeSeed.millitm);
 	usleep(10000);
+    dbg("\n%d\n",timeSeed.millitm);
+	//num = rand()%mod;
+	//num = timeSeed.time * 1000 + timeSeed.millitm;
+    //dbg("num: %d\n", num);
 	return rand()%mod;
 }
 
@@ -72,8 +78,11 @@ void print_2_elements_question(struct question *q)
 
 void generate_subtraction_question(struct question *q, int mod)
 {
+
 	while (1) {
-		q->var1 = get_random_digits(mod);
+        ftime(&timeSeed);
+		//q->var1 = get_random_digits(mod);
+		q->var1 = (timeSeed.millitm - last_question_timeb.millitm) % mod;
 		q->var2 = get_random_digits(mod);
 		q->op=SUB;
 
@@ -212,6 +221,8 @@ int main(void)
 
     /* prepare buffer settings */
     initialize_buffer_property();
+
+	ftime(&last_question_timeb);
 
 	ptr = test_result_10;
 
