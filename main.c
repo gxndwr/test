@@ -63,10 +63,13 @@ int double_digit_generator(void)
     return 0;
 }
 
-void foo(struct question *ques)
+void print_2_elements_question(struct question *q)
 {
-	printf("%s\n", __func__);
+	dbg("%s() is called\n", __func__);
+	printf("%d %c %d =____", q->var1, op_sym[q->op],
+		   q->var2);
 }
+
 void generate_subtraction_question(struct question *q, int mod)
 {
 	while (1) {
@@ -82,13 +85,10 @@ void generate_subtraction_question(struct question *q, int mod)
 	dbg("\n%s(): %d %c %d = %d\n",
         __func__, q->var1, op_sym[ques.op],
 		q->var2, q->correct_answer);
-	q->print_question = foo;
+
+	q->print_question = print_2_elements_question;
 }
 
-void print_addition_question(struct question* q){
-    printf("%d!!!!!!!\n", q->var1);
-
-}
 void generate_addition_question(struct question *q, int mod)
 {
 	while (1) {
@@ -104,17 +104,21 @@ void generate_addition_question(struct question *q, int mod)
 	dbg("\n%s(): %d %c %d = %d\n",
         __func__, q->var1, op_sym[ques.op],
 		q->var2, q->correct_answer);
+
+	q->print_question = print_2_elements_question;
 }
 
-enum test_mode {EXERCISE, EXAM};
-enum judge_result {PASS, FAIL};
-
+/* record for jude result */
 struct test_result {
 	struct question ques;
 	int user_input;
 	int judge_result;
 };
 
+enum test_mode {EXERCISE, EXAM};
+enum judge_result {PASS, FAIL};
+
+/* main test function */
 int test(int mode, struct test_result *tr, int math)
 {
 	char ch, input_string[10];
@@ -133,12 +137,11 @@ int test(int mode, struct test_result *tr, int math)
         generate_subtraction_question(&ques, 1000);
     else
         goto error;
-ques.print_question(&ques);
 again:
 	/* print question */
-	printf("%d %c %d =____", ques.var1, op_sym[ques.op]
-            ,ques.var2);
-
+	ques.print_question(&ques);
+	//printf("%d %c %d =____", ques.var1, op_sym[ques.op],
+	//	   ques.var2);
 
 	/* Change io buffer property to react for each cahr input */
     disable_io_buffer();
