@@ -104,7 +104,7 @@ struct test_result {
 	int judge_result;
 };
 
-int test(int mode, struct test_result *tr)
+int test(int mode, struct test_result *tr, int math)
 {
 	char ch, input_string[10];
 	int input, i, size;
@@ -115,9 +115,13 @@ int test(int mode, struct test_result *tr)
 	int result = -1;
 	int ret = 0;
 
-	/* generate question */
-	//generate_addition_question(&ques, 1000);
-	generate_subtraction_question(&ques, 1000);
+    /* generate question */
+    if (math == ADD)
+        generate_addition_question(&ques, 1000);
+    else if (math == SUB)
+        generate_subtraction_question(&ques, 1000);
+    else
+        goto error;
 
 again:
 	/* print question */
@@ -158,26 +162,30 @@ again:
 
 	/* judge */
 	if (input == ques.correct_answer) {
-		dbg("\nResult: Correct!\n");
-	} else {
-		if (mode == EXERCISE) {
-			printf("\nResult: Wrong! Do it again...\n\n");
-			goto again;
-		} else if (mode == EXAM) { /* record result */
-			if (tr != NULL) {
-				tr->ques.var1 = ques.var1;
-				tr->ques.var2 = ques.var2;
-				tr->ques.op = ques.op;
-				tr->ques.correct_answer = ques.correct_answer;
-				tr->user_input = input;
-				tr->judge_result = FAIL;
-			}
-		}
-		ret = -1;
-	}
+        dbg("\nResult: Correct!\n");
+    } else {
+        if (mode == EXERCISE) {
+            printf("\nResult: Wrong! Do it again...\n\n");
+            goto again;
+        } else if (mode == EXAM) { /* record result */
+            if (tr != NULL) {
+                tr->ques.var1 = ques.var1;
+                tr->ques.var2 = ques.var2;
+                tr->ques.op = ques.op;
+                tr->ques.correct_answer = ques.correct_answer;
+                tr->user_input = input;
+                tr->judge_result = FAIL;
+            }
+        }
+        ret = -1;
+    }
 
-	printf("\n");
-	return ret;
+    printf("\n");
+    return ret;
+
+error:
+    printf("%s(): mode invalid: %d!\n", __func__, math);
+    return -2;
 }
 
 int main(void)
@@ -212,13 +220,19 @@ int main(void)
 
 	printf("Let's begin...\n\n");
 	for (count = 0; count < 4; count++) {
-		ret = test(user_choice, ptr);
-		if ((ret < 0) && (user_choice == EXAM)) {
+		ret = test(user_choice, ptr, ADD);
+		ret = test(user_choice, ptr, SUB);
+		if ((ret == -1) && (user_choice == EXAM)) {
 			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1,
                     op_sym[ptr->ques.op] ,ptr->ques.var2,
                     ptr->user_input, ptr->ques.correct_answer);
 			ptr++;
 		}
+        dbg("%s(): ret: %d\n", __func__,  ret);
+        if (ret == -2) {
+            printf("Fatal error: %d, return.\n", ret);
+            return -1;
+        }
 	}
 
 	return 0;
