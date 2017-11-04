@@ -5,6 +5,7 @@
 #include <sys/timeb.h>
 #include <unistd.h>
 
+#define QUESTION_NUM    8
 static struct termios old, new;
 
 //#define DEBUG
@@ -194,6 +195,7 @@ int main(void)
 	int count, ret;
 	char ch;
 	int user_choice;
+    int math_mode;
 
     /* prepare buffer settings */
     initialize_buffer_property();
@@ -202,6 +204,22 @@ int main(void)
 
     disable_io_buffer();
 
+    /* choose math mode */
+	while(1) {
+		printf("Do ADD(a) or SUB(s)?\n");
+		ch = getchar();
+		if (ch == 'a') {
+			math_mode = ADD;
+			break;
+		}
+		if (ch == 's') {
+			math_mode = SUB;
+			break;
+		}
+		printf("invalid choice\n");
+	}
+
+    /* choose test mode */
 	while(1) {
 		printf("EXERCISE(x) or EXAM(m)?\n");
 		ch = getchar();
@@ -219,9 +237,8 @@ int main(void)
     enable_io_buffer();
 
 	printf("Let's begin...\n\n");
-	for (count = 0; count < 4; count++) {
-		ret = test(user_choice, ptr, ADD);
-		ret = test(user_choice, ptr, SUB);
+	for (count = 0; count < QUESTION_NUM; count++) {
+		ret = test(user_choice, ptr, math_mode);
 		if ((ret == -1) && (user_choice == EXAM)) {
 			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1,
                     op_sym[ptr->ques.op] ,ptr->ques.var2,
