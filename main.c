@@ -61,6 +61,23 @@ int double_digit_generator(void)
     return 0;
 }
 
+void generate_subtraction_question(struct question *q, int mod)
+{
+	while (1) {
+		q->var1 = get_random_digits(mod);
+		q->var2 = get_random_digits(mod);
+		q->op=SUB;
+
+		/* restrict result no more than max num */
+		if (q->var1 > q->var2)
+			break;
+	}
+	q->correct_answer = q->var1 - q->var2;
+	dbg("\n%s(): %d %c %d = %d\n",
+        __func__, q->var1, op_sym[ques.op],
+		q->var2, q->correct_answer);
+}
+
 void generate_addition_question(struct question *q, int mod)
 {
 	while (1) {
@@ -99,7 +116,8 @@ int test(int mode, struct test_result *tr)
 	int ret = 0;
 
 	/* generate question */
-	generate_addition_question(&ques, 1000);
+	//generate_addition_question(&ques, 1000);
+	generate_subtraction_question(&ques, 1000);
 
 again:
 	/* print question */
