@@ -6,9 +6,12 @@
 #include <unistd.h>
 
 #define QUESTION_NUM    8
+#define RADOM_SEED_POOL_SIZE 10
 static struct termios old, new;
 
-//#define DEBUG
+#if 0
+#define DEBUG
+#endif
 
 #if defined(DEBUG)
 	#define dbg printf
@@ -37,13 +40,75 @@ void enable_io_buffer()
 	tcsetattr(0, TCSANOW, &old);
 }
 
-struct timeb timeSeed;
-int get_random_digits(int mod)
+struct random_seed {
+    struct random_seed *next;
+    struct random_seed *prev;
+    int seed;
+};
+static struct random_seed *head_seed;
+static struct random_seed *enqueue_seed;
+static struct random_seed *dequeue_seed;
+static struct random_seed first_seed;
+void print_random_seed_content(void)
+{
+    struct random_seed *p;
+    printf("\nprint all linked list items:\n");
+    p = head_seed;
+    while(p->next != head_seed) {
+        printf("p->prev: %p\n", p->prev);
+        printf("p      : %p\n", p);
+        printf("p->seed      : %d\n", p->seed);
+        printf("p->next: %p\n", p->next);
+        p = p->next;
+        printf("-------------\n");
+    }
+    printf("p->prev: %p\n", p->prev);
+    printf("p      : %p\n", p);
+    printf("p->seed      : %d\n", p->seed);
+    printf("p->next: %p\n", p->next);
+}
+void initialize_random_seed_poll(void)
+{
+    int i, ret;
+    struct random_seed *p;
+
+    head_seed = &first_seed;
+    enqueue_seed = head_seed;
+    dequeue_seed = head_seed;
+    head_seed->next = &first_seed;
+    head_seed->prev = &first_seed;
+
+    dbg("struct size:%lu\n", sizeof(struct random_seed));
+    for (i=0; i<RADOM_SEED_POOL_SIZE; i++) {
+        p = malloc(sizeof(struct random_seed));
+        p->seed = i*i; /* make default digit hard to predict */
+        p->next = head_seed;
+        p->prev = head_seed->prev;
+        head_seed->prev->next = p;
+        head_seed->prev = p;
+        head_seed = p;
+    }
+}
+
+static struct timeb timeSeed;
+char get_input()
 {
 	ftime(&timeSeed);
-	srand(timeSeed.time * 1000 + timeSeed.millitm);
-	usleep(10000);
-	return rand()%mod;
+    enqueue_seed->seed = timeSeed.time * 1000 + timeSeed.millitm;
+    enqueue_seed = enqueue_seed->next;
+    return getchar();
+}
+
+int get_random_digits(int mod)
+{
+    int digit;
+
+	srand(dequeue_seed->prev->seed);
+    dequeue_seed = dequeue_seed->next;
+	digit = rand()%mod;
+    dbg("\nrandom seed:%d\n", dequeue_seed->seed);
+    dbg("\nrandom digit: %d\n", digit);
+    return digit;
 }
 
 enum operation {ADD, SUB, MUX, DIV, ERR};
@@ -72,16 +137,16 @@ void print_2_elements_question(struct question *q)
 
 void generate_subtraction_question(struct question *q, int mod)
 {
-	while (1) {
-		q->var1 = get_random_digits(mod);
-		q->var2 = get_random_digits(mod);
-		q->op=SUB;
+    q->var1 = get_random_digits(mod);
+    q->var2 = get_random_digits(mod);
+    q->op=SUB;
 
-		/* restrict result no more than max num */
-		if (q->var1 > q->var2)
-			break;
-	}
-	q->correct_answer = q->var1 - q->var2;
+    /* restrict result is positive */
+    if (q->var1 > q->var2)
+        q->correct_answer = q->var1 - q->var2;
+    else
+        q->correct_answer = q->var2 - q->var1;
+
 	dbg("\n%s(): %d %c %d = %d\n",
         __func__, q->var1, op_sym[ques.op],
 		q->var2, q->correct_answer);
@@ -140,8 +205,6 @@ int test(int mode, struct test_result *tr, int math)
 again:
 	/* print question */
 	ques.print_question(&ques);
-	//printf("%d %c %d =____", ques.var1, op_sym[ques.op],
-	//	   ques.var2);
 
 	/* Change io buffer property to react for each cahr input */
     disable_io_buffer();
@@ -149,7 +212,7 @@ again:
 	/* collect input */
 	size = 0;
 	input_string[size] = '\0';
-	while ((ch = getchar()) != '\n') {
+	while ((ch = get_input()) != '\n') {
 		if (ch == 127) {
 			printf("_");
 			if (size) {
@@ -205,6 +268,7 @@ error:
 int main(void)
 {
 	struct test_result test_result_10[10], *ptr;
+    struct random_seed *p;
 	int count, ret;
 	char ch;
 	int user_choice;
@@ -215,12 +279,12 @@ int main(void)
 
 	ptr = test_result_10;
 
+    initialize_random_seed_poll();
     disable_io_buffer();
-
     /* choose math mode */
 	while(1) {
 		printf("Do ADD(a) or SUB(s)?\n");
-		ch = getchar();
+		ch = get_input();
 		if (ch == 'a') {
 			math_mode = ADD;
 			break;
@@ -235,7 +299,7 @@ int main(void)
     /* choose test mode */
 	while(1) {
 		printf("EXERCISE(x) or EXAM(m)?\n");
-		ch = getchar();
+		ch = get_input();
 		if (ch == 'x') {
 			user_choice = EXERCISE; 
 			break;
@@ -250,10 +314,12 @@ int main(void)
     enable_io_buffer();
 
 	printf("Let's begin...\n\n");
+    //print_random_seed_content();
+
 	for (count = 0; count < QUESTION_NUM; count++) {
 		ret = test(user_choice, ptr, math_mode);
 		if ((ret == -1) && (user_choice == EXAM)) {
-			printf("%d %c %d = %d: %d FAIL \n", ptr->ques.var1,
+			printf("%d %c %d = %d: %d FAIL \n\n", ptr->ques.var1,
                     op_sym[ptr->ques.op] ,ptr->ques.var2,
                     ptr->user_input, ptr->ques.correct_answer);
 			ptr++;
@@ -264,6 +330,18 @@ int main(void)
             return -1;
         }
 	}
+    //print_random_seed_content();
 
+    /* Free memory for linked list items */
+    struct random_seed *next;
+    dbg("\nFree memory of linked list:\n");
+    p = first_seed.next;
+    while(p != &first_seed) {
+        dbg("free p: %p\n", p);
+        next = p->next;
+        free(p);
+        p = next;
+        dbg("-------------\n");
+    }
 	return 0;
 }
