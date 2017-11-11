@@ -135,6 +135,27 @@ void print_2_elements_question(struct question *q)
 		   q->var2);
 }
 
+void generate_mux_question(struct question *q, int mod)
+{
+    while(1) {
+        q->var1 = get_random_digits(mod);
+        if (q->var1 % 10 != 0)
+            break;
+    }
+    q->var2 = get_random_digits(10);
+    q->op = MUX;
+    dbg("op:%d\n", q->op);
+
+    /* restrict result is positive */
+    q->correct_answer = q->var1 * q->var2;
+
+	dbg("\n%s(): %d %c %d = %d\n",
+        __func__, q->var1, op_sym[ques.op],
+		q->var2, q->correct_answer);
+
+	q->print_question = print_2_elements_question;
+}
+
 void generate_subtraction_question(struct question *q, int mod)
 {
     q->var1 = get_random_digits(mod);
@@ -200,6 +221,8 @@ int test(int mode, struct test_result *tr, int math)
         generate_addition_question(&ques, 1000);
     else if (math == SUB)
         generate_subtraction_question(&ques, 1000);
+    else if (math == MUX)
+        generate_mux_question(&ques, 100);
     else
         goto error;
 again:
@@ -283,7 +306,7 @@ int main(void)
     disable_io_buffer();
     /* choose math mode */
 	while(1) {
-		printf("Do ADD(a) or SUB(s)?\n");
+		printf("Do ADD(a) or SUB(s) or MUX(m)?\n");
 		ch = get_input();
 		if (ch == 'a') {
 			math_mode = ADD;
@@ -291,6 +314,10 @@ int main(void)
 		}
 		if (ch == 's') {
 			math_mode = SUB;
+			break;
+		}
+		if (ch == 'm') {
+			math_mode = MUX;
 			break;
 		}
 		printf("invalid choice\n");
