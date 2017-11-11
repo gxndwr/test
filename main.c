@@ -120,6 +120,7 @@ static struct question {
 	int correct_answer;
 	int user_input;
     void (*print_question)(struct question *THIS);
+    void (*collect_input)(struct question *THIS);
 }ques;
 
 int double_digit_generator(void)
@@ -128,6 +129,40 @@ int double_digit_generator(void)
     return 0;
 }
 
+void general_collect_input(struct question *q)
+{
+	char ch, input_string[10];
+	int input, i, size;
+
+	input = -1;
+	ch = 0;
+    disable_io_buffer();/* Change io buffer property to react for each cahr input */
+	size = 0;
+	input_string[size] = '\0';
+	while ((ch = get_input()) != '\n') {
+		if (ch == 127) {
+			printf("_");
+			if (size) {
+				for(i=0;i<size;i++) {
+					input_string[i] = input_string[i+1];
+				}
+				size--;
+			}
+			continue;
+		}
+		dbg("\n:%d\n", ch);
+		size++;
+		printf("\b%c\b",ch);
+		for(i=size;i>0;i--) {
+			input_string[i] = input_string[i-1];
+		}
+		input_string[0] = ch;
+	}
+    enable_io_buffer();
+	input = atoi(input_string);;
+	dbg("\n%s(): input is: %d\n", __func__, input);
+    q->user_input = input;
+}
 void print_2_elements_question(struct question *q)
 {
 	dbg("%s() is called\n", __func__);
@@ -154,10 +189,13 @@ void generate_mux_question(struct question *q, int mod)
 		q->var2, q->correct_answer);
 
 	q->print_question = print_2_elements_question;
+	q->collect_input = general_collect_input;
 }
 
 void generate_subtraction_question(struct question *q, int mod)
 {
+    int tmp;
+
     q->var1 = get_random_digits(mod);
     q->var2 = get_random_digits(mod);
     q->op=SUB;
@@ -165,14 +203,19 @@ void generate_subtraction_question(struct question *q, int mod)
     /* restrict result is positive */
     if (q->var1 > q->var2)
         q->correct_answer = q->var1 - q->var2;
-    else
+    else {
         q->correct_answer = q->var2 - q->var1;
+        tmp = q->var1;
+        q->var1 = q->var2;
+        q->var2 = tmp;
+    }
 
 	dbg("\n%s(): %d %c %d = %d\n",
         __func__, q->var1, op_sym[ques.op],
 		q->var2, q->correct_answer);
 
 	q->print_question = print_2_elements_question;
+	q->collect_input = general_collect_input;
 }
 
 void generate_addition_question(struct question *q, int mod)
@@ -192,6 +235,7 @@ void generate_addition_question(struct question *q, int mod)
 		q->var2, q->correct_answer);
 
 	q->print_question = print_2_elements_question;
+	q->collect_input = general_collect_input;
 }
 
 /* record for jude result */
@@ -207,13 +251,6 @@ enum judge_result {PASS, FAIL};
 /* main test function */
 int test(int mode, struct test_result *tr, int math)
 {
-	char ch, input_string[10];
-	int input, i, size;
-	input = -1;
-	ch = 0;
-	int a1, a2, a3;
-	int m1, m2, m3;
-	int result = -1;
 	int ret = 0;
 
     /* generate question */
@@ -225,43 +262,16 @@ int test(int mode, struct test_result *tr, int math)
         generate_mux_question(&ques, 100);
     else
         goto error;
+
 again:
-	/* print question */
+    /* print question */
 	ques.print_question(&ques);
 
-	/* Change io buffer property to react for each cahr input */
-    disable_io_buffer();
-
-	/* collect input */
-	size = 0;
-	input_string[size] = '\0';
-	while ((ch = get_input()) != '\n') {
-		if (ch == 127) {
-			printf("_");
-			if (size) {
-				for(i=0;i<size;i++) {
-					input_string[i] = input_string[i+1];
-				}
-				size--;
-			}
-			continue;
-		}
-		dbg("\n:%d\n", ch);
-		size++;
-		printf("\b%c\b",ch);
-		for(i=size;i>0;i--) {
-			input_string[i] = input_string[i-1];
-		}
-		input_string[0] = ch;
-	}
-
-    enable_io_buffer();
-
-	input = atoi(input_string);;
-	dbg("\n%s(): input is: %d\n", __func__, input);
+    /* collect user input */
+    ques.collect_input(&ques);
 
 	/* judge */
-	if (input == ques.correct_answer) {
+	if (ques.user_input == ques.correct_answer) {
         dbg("\nResult: Correct!\n");
     } else {
         if (mode == EXERCISE) {
@@ -273,7 +283,7 @@ again:
                 tr->ques.var2 = ques.var2;
                 tr->ques.op = ques.op;
                 tr->ques.correct_answer = ques.correct_answer;
-                tr->user_input = input;
+                tr->user_input = ques.user_input;
                 tr->judge_result = FAIL;
             }
         }
