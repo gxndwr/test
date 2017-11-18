@@ -4,10 +4,10 @@
 #include <time.h>
 #include <sys/timeb.h>
 #include <unistd.h>
+#include "io.h"
 
 #define QUESTION_NUM    8
 #define RADOM_SEED_POOL_SIZE 10
-static struct termios old, new;
 
 #if 0
 #define DEBUG
@@ -21,24 +21,6 @@ void dbg(char *format, ...)
 	
 }
 #endif
-
-void initialize_buffer_property(void)
-{
-	tcgetattr(0, &old);
-	new = old;
-	new.c_lflag &= ~ICANON;
-	new.c_lflag &= ~ECHO;
-}
-
-void disable_io_buffer()
-{
-	tcsetattr(0, TCSANOW, &new);
-}
-
-void enable_io_buffer()
-{
-	tcsetattr(0, TCSANOW, &old);
-}
 
 struct random_seed {
     struct random_seed *next;
@@ -307,13 +289,11 @@ int main(void)
 	int user_choice;
     int math_mode;
 
-    /* prepare buffer settings */
-    initialize_buffer_property();
-
 	ptr = test_result_10;
 
     initialize_random_seed_poll();
     disable_io_buffer();
+
     /* choose math mode */
 	while(1) {
 		printf("Do ADD(a) or SUB(s) or MUX(m)?\n");
