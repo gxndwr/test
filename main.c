@@ -8,6 +8,7 @@
 #include "number.h"
 
 #define QUESTION_NUM    8
+//#define RIGHT_INPUT_FIRST
 
 
 #if 0
@@ -57,10 +58,12 @@ void general_collect_input(struct question *q)
 
 	input = -1;
 	ch = 0;
+    i = 0;
     disable_io_buffer();/* Change io buffer property to react for each cahr input */
 	size = 0;
 	input_string[size] = '\0';
 	while ((ch = get_input()) != '\n') {
+#ifdef RIGHT_INPUT_FIRST
 		if (ch == 127) {
 			printf("_");
 			if (size) {
@@ -78,7 +81,12 @@ void general_collect_input(struct question *q)
 			input_string[i] = input_string[i-1];
 		}
 		input_string[0] = ch;
+#else
+        input_string[i++] = ch;
+        printf("%c", ch);
+#endif
 	}
+
     enable_io_buffer();
 	input = atoi(input_string);;
 	dbg("\n%s(): input is: %d\n", __func__, input);
@@ -87,8 +95,13 @@ void general_collect_input(struct question *q)
 void print_2_elements_question(struct question *q)
 {
 	dbg("%s() is called\n", __func__);
+#ifdef RIGHT_INPUT_FIRST  
 	printf("%d %c %d =____", q->var1, op_sym[q->op],
 		   q->var2);
+#else
+	printf("%d %c %d = ", q->var1, op_sym[q->op],
+		   q->var2);
+#endif
 }
 
 void generate_mux_question(struct question *q, int mod)
